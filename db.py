@@ -72,6 +72,27 @@ def _행_변환(행: dict) -> dict:
     return {칸: "" if 행.get(칸) is None else str(행[칸]) for 칸 in 대장_칸}
 
 
+def 접수_저장(발견일: str, 접수자: str, 부서: str, 위치: str, 내용: str) -> int:
+    """접수 화면에서 들어온 한 건을 저장하고 id(자동 번호)를 돌려준다. 처리상태는 미처리로 시작한다."""
+    문장 = insert(접수).values(발견일=발견일, 접수자=접수자, 부서=부서, 위치=위치, 내용=내용).returning(접수.c.id)
+    with 엔진().begin() as 연결:
+        return 연결.execute(문장).scalar_one()
+
+
+def 접수_미처리_읽기() -> list[dict]:
+    """처리상태가 미처리인 접수를 id 순으로 돌려준다."""
+    칸들 = ["id", "접수일시", "발견일", "접수자", "부서", "위치", "내용", "처리상태", "접수번호"]
+    with 엔진().connect() as 연결:
+        읽은 = 연결.execute(select(접수).where(접수.c.처리상태 == "미처리").order_by(접수.c.id)).mappings().all()
+    return [{칸: 행[칸] for 칸 in 칸들} for 행 in 읽은]
+
+
+def 접수_처리완료(접수_id: int, 접수번호: str) -> None:
+    """하자대장에 옮긴 접수를 처리완료로 바꾸고 접수번호를 적는다."""
+    with 엔진().begin() as 연결:
+        연결.execute(접수.update().where(접수.c.id == 접수_id).values(처리상태="처리완료", 접수번호=접수번호))
+
+
 def 대장_저장(행들: list[dict]) -> int:
     """하자대장에 넣는다. 같은 접수번호가 있으면 덮어쓴다. 넣은 건수를 돌려준다."""
     if not 행들:

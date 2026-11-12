@@ -15,12 +15,14 @@ st.title("하자보수 접수 정리")
 st.caption("① 코드가 원문을 읽고 → ② AI가 정리하고 → ③ 코드가 규칙으로 번호·기한·보증을 판정하면 → ④ 사람이 확인합니다.")
 
 접수_파일수 = len(list(run.입력_폴더.glob("*.txt")))
+접수_DB수 = len(db.접수_미처리_읽기())
 
 with st.sidebar:
     st.subheader("접수함")
-    st.write(f"처리할 접수 **{접수_파일수}건**")
-    시작 = st.button("접수함 처리하고 대장 저장", type="primary", width="stretch", disabled=접수_파일수 == 0)
-    st.caption("AI를 건마다 한 번씩 부르고, 결과를 하자대장 DB에 저장합니다. (같은 접수번호는 덮어씀)")
+    st.write(f"처리할 접수 **{접수_파일수 + 접수_DB수}건**")
+    st.caption(f"접수함 파일 {접수_파일수}건 + 접수 화면(DB) 미처리 {접수_DB수}건")
+    시작 = st.button("접수함 처리하고 대장 저장", type="primary", width="stretch", disabled=접수_파일수 + 접수_DB수 == 0)
+    st.caption("AI를 건마다 한 번씩 부르고, 결과를 하자대장 DB에 저장합니다. (같은 접수번호는 덮어씀) DB 접수는 처리완료로 바뀝니다.")
 
 if 시작:
     with st.status("접수함을 처리하는 중...", expanded=True) as 상태창:

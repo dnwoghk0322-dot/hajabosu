@@ -5,6 +5,7 @@
 import pandas as pd
 import streamlit as st
 
+import db
 import rules
 import run
 
@@ -19,7 +20,7 @@ with st.sidebar:
     st.subheader("접수함")
     st.write(f"처리할 접수 **{접수_파일수}건**")
     시작 = st.button("접수함 처리하고 대장 저장", type="primary", width="stretch", disabled=접수_파일수 == 0)
-    st.caption("AI를 건마다 한 번씩 부르고, 결과를 `data/하자대장.csv`에 덮어씁니다.")
+    st.caption("AI를 건마다 한 번씩 부르고, 결과를 하자대장 DB에 저장합니다. (같은 접수번호는 덮어씀)")
 
 if 시작:
     with st.status("접수함을 처리하는 중...", expanded=True) as 상태창:
@@ -31,7 +32,7 @@ if 시작:
             st.error(f"{type(e).__name__}: {e}")
             st.stop()
         st.session_state["결과"] = 결과
-        상태창.update(label=f"{len(결과)}건 처리하고 하자대장.csv에 저장했습니다", state="complete", expanded=False)
+        상태창.update(label=f"{len(결과)}건 처리하고 하자대장 DB에 저장했습니다", state="complete", expanded=False)
 
 결과 = st.session_state.get("결과")
 
@@ -48,10 +49,10 @@ def _공사_찾기(공사번호: str) -> dict | None:
 
 # ---------- 처리 전: 저장된 대장만 보여 준다 ----------
 if not 결과:
-    저장본 = run.출력_파일
-    if 저장본.exists():
+    저장본 = db.대장_읽기()
+    if 저장본:
         st.info("왼쪽에서 처리를 시작하면 건마다 거친 단계가 여기에 보입니다. 아래는 마지막으로 저장된 하자대장입니다.")
-        st.dataframe(pd.read_csv(저장본, encoding="utf-8-sig", dtype=str).fillna(""), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(저장본, columns=db.대장_칸), width="stretch", hide_index=True)
     else:
         st.info("왼쪽에서 접수함 처리를 시작하세요.")
     st.stop()
@@ -127,7 +128,7 @@ with 탭_과정:
 
 # ---------- 하자대장 ----------
 with 탭_대장:
-    st.caption("`data/하자대장.csv`에 저장된 내용입니다. 노란 줄은 사람이 확인할 건입니다.")
+    st.caption("하자대장 DB에 저장된 내용입니다. 노란 줄은 사람이 확인할 건입니다.")
     st.dataframe(
         df.style.apply(
             lambda r: ["background-color: rgba(255, 193, 7, 0.25)"] * len(r) if r["상태"] == "확인필요" else [""] * len(r),

@@ -1,21 +1,18 @@
-"""접수함 폴더의 원문을 모두 읽어 하자대장.csv로 저장한다.
+"""접수함 폴더의 원문을 모두 읽어 하자대장 DB에 저장한다.
 
-흐름: 원문 읽기(코드) → 접수 정리(AI) → 번호, 기한, 보증 판정(코드) → CSV 저장
+흐름: 원문 읽기(코드) → 접수 정리(AI) → 번호, 기한, 보증 판정(코드) → DB 저장
 """
-import csv
 import re
 import sys
 from pathlib import Path
 
 import ai
+import db
 import rules
 
 BASE = Path(__file__).parent
 입력_폴더 = BASE / "data" / "접수함"
-출력_파일 = BASE / "data" / "하자대장.csv"
-
-대장_칸 = ["접수번호", "접수일", "원문파일", "위치", "공종", "하자내용", "긴급도", "조치기한",
-          "공사번호", "시공업체", "준공일", "보증만료일", "보증판정", "책임구분", "상태", "비고"]
+대장_칸 = db.대장_칸
 
 공종_목록 = {"방수", "타일", "전기", "설비", "기계", "도장", "바닥재"}
 
@@ -96,18 +93,15 @@ def 처리() -> list[dict]:
 
 
 def 저장(행들: list[dict]) -> None:
-    # utf-8-sig: 엑셀에서 열어도 한글이 깨지지 않는다.
-    with open(출력_파일, "w", encoding="utf-8-sig", newline="") as f:
-        쓰는이 = csv.DictWriter(f, fieldnames=대장_칸)
-        쓰는이.writeheader()
-        쓰는이.writerows(행들)
+    """하자대장 DB에 넣는다. 같은 접수번호는 덮어쓴다."""
+    db.대장_저장(행들)
 
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     행들 = 처리()
     저장(행들)
-    print(f"\n{len(행들)}건을 {출력_파일}에 저장했습니다.")
+    print(f"\n{len(행들)}건을 하자대장 DB에 저장했습니다.")
     for 행 in 행들:
         print(f"{행['접수번호']}  {행['위치']}  {행['공종']}  {행['긴급도']}  {행['조치기한']}  "
               f"{행['보증판정']}/{행['책임구분']}  {행['비고']}")
